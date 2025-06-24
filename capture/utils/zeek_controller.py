@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from django.conf import settings
 from .log_parser import parse_ascii_log
-from .models import ZeekLog
+from capture.models import ZeekLog
 
 class ZeekController:
     def __init__(self, session_id=None):
@@ -144,7 +144,7 @@ class ZeekController:
     
     #Fonction pour arreter la capture 
     def stop_capture(self):
-       
+        
         if not self.capture_active:
             return
             
