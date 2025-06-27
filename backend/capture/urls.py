@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (CaptureAPIView, StopCaptureAPIView, SessionDetailAPIView, SessionListAPIView, InterfaceListAPIView,LiveStatsAPIView, LogStreamView)
+from .views import (CaptureAPIView, StopCaptureAPIView, SessionDetailAPIView, SessionListAPIView, InterfaceListAPIView,LiveStatsAPIView, LogStreamView, AnalyzeCaptureAPIView)
 from .views import predict
 
 app_name = 'forensic_app'
@@ -11,6 +11,7 @@ urlpatterns = [
     path('sessions/', SessionListAPIView.as_view(), name='session_list'),
     path('sessions/<int:pk>/', SessionDetailAPIView.as_view(), name='session_detail'),
     path('interfaces/', InterfaceListAPIView.as_view(), name='interface_list'),
+    path('capture/<int:session_id>/analyse/', AnalyzeCaptureAPIView.as_view(), name='capture-analyze'),
     path('stats/live/', LiveStatsAPIView.as_view(), name='live_stats'),
     path('logs/stream/', LogStreamView.as_view(), name='log-stream'),
     path('predict/', predict, name='predict')

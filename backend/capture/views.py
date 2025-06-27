@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
-from .models import NetworkInterface, CaptureSession, ZeekLog
+from .models import NetworkInterface, CaptureSession, ZeekLog, Prediction
 from .utils.zeek_controller import ZeekController
 from .serializers import CaptureSessionSerializer, ZeekLogSerializer
 import threading
@@ -14,6 +14,8 @@ from .utils.tools import detect_interfaces
 from .modeling.prediction import PredictionIA
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .utils.log_analyser import analyze_conn_log
+import os
 
 
 # Dictionnaire pour stocker les contrôleurs actifs
@@ -101,18 +103,39 @@ class StopCaptureAPIView(APIView):
         if session_id in active_controllers:
             controller = active_controllers[session_id]
             controller.stop_capture()
-            
-            # Mise à jour session
+
             session.end_time = timezone.now()
             session.status = 'stopped'
             session.save()
-            
+
+            #Automate Log analysis //but we prefer to get it manually on test with the analysecapture view
+            log_path = os.path.join(session.log_dir, "conn.log")
+            if os.path.exists(log_path):
+                analysis_result = analyze_conn_log(log_path)
+
+                #Save result
+                for entry in analysis_result:
+                    Prediction.objects.create(
+                        session=session,
+                        timestamp=entry['timestamp'],
+                        src_port=entry['src_port'],
+                        dst_port=entry['dst_port'],
+                        proto=entry['proto'],
+                        is_attack=entry['is_attack'],
+                        confidence=entry['confidence']
+                    )
+
+            else:
+                print(f"[WARN] Fichier {log_path} introuvable.")
+
+            # Nettoyage
             del active_controllers[session_id]
 
         return Response(
             {'status': 'success', 'message': 'Capture arrêtée'},
             status=status.HTTP_200_OK
         )
+
 
 
 class SessionDetailAPIView(APIView):
@@ -156,6 +179,8 @@ class InterfaceListAPIView(APIView):
         except RuntimeError as e:
             return Response({'error': str(e)}, status=500)
 
+# Visualisation on the dashboard part
+
 # Live Capture Visual Function
 class LiveStatsAPIView(APIView):
     def get(self, request):
@@ -168,10 +193,6 @@ class LiveStatsAPIView(APIView):
             #'packets_last_second': get_random_packet_count() 
         })
     
-    
-# Random simulation for tests
-#def get_random_packet_count():
- #   return random.randint(50, 200)
 
 # Live Logging Capture Function
 class LogStreamView(APIView):
@@ -210,6 +231,7 @@ predictor = PredictionIA()
 
 @csrf_exempt 
 def predict(request):
+
     if request.method == 'POST':
         try:
             # Récupère les données du POST
@@ -235,3 +257,31 @@ def predict(request):
             }, status=400)
     
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+# Manually capture analysing view
+class AnalyzeCaptureAPIView(APIView):
+    def post(self, request, session_id):
+        try:
+            session = CaptureSession.objects.get(id=session_id)
+        except CaptureSession.DoesNotExist:
+            return Response({'error': 'Session non trouvée'}, status=status.HTTP_404_NOT_FOUND)
+
+        log_path = os.path.join(session.log_dir, "conn.log")
+        if not os.path.exists(log_path):
+            return Response({'error': 'Fichier conn.log introuvable'}, status=status.HTTP_400_BAD_REQUEST)
+
+        results = analyze_conn_log(log_path)
+
+        # Data Analisis save on database
+        for entry in results:
+            Prediction.objects.create(
+                session=session,
+                timestamp=entry['timestamp'],
+                src_port=entry['src_port'],
+                dst_port=entry['dst_port'],
+                proto=entry['proto'],
+                is_attack=entry['is_attack'],
+                confidence=entry['confidence']
+            )
+
+        return Response({'status': 'success', 'message': f'{len(results)} entrées analysées'}, status=status.HTTP_200_OK)
