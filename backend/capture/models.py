@@ -24,8 +24,8 @@ class CaptureSession(models.Model):
         ('stopped', 'Arrêté'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    interface = models.ForeignKey(NetworkInterface, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    interface_name = models.CharField(max_length=100)    
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
@@ -52,3 +52,11 @@ class ZeekLog(models.Model):
 
     def __str__(self):
         return f"{self.log_type} - {self.timestamp}"
+    
+#Modele des donnnées de prediction
+class Prediction(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    src_port = models.PositiveIntegerField()
+    dst_port = models.PositiveIntegerField()
+    is_attack = models.BooleanField()
+    confidence = models.FloatField()

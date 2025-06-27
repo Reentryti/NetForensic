@@ -21,8 +21,3 @@ class ZeekLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ZeekLog
         fields = ['id', 'log_type', 'timestamp', 'data']
-
-class NetworkInterfaceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = NetworkInterface
-        fields = ['id', 'name', 'description']
