@@ -7,9 +7,6 @@ from .models import NetworkInterface, CaptureSession, ZeekLog, Prediction
 from .utils.zeek_controller import ZeekController
 from .serializers import CaptureSessionSerializer, ZeekLogSerializer
 import threading
-from django.http import StreamingHttpResponse
-import json
-import time
 from .utils.tools import detect_interfaces
 from .modeling.prediction import PredictionIA
 from django.http import JsonResponse
@@ -183,47 +180,10 @@ class InterfaceListAPIView(APIView):
 # Visualisation on the dashboard part
 
 # Live Capture Visual Function
-class LiveStatsAPIView(APIView):
-    def get(self, request):
-        active_session = CaptureSession.objects.filter(status='running').first()
-        
-        return Response({
-            'packet_count': active_session.packet_count if active_session else 0,
-            'throughput_mbps': active_session.throughput if active_session else 0,
-            'active_connections': active_session.connection_count if active_session else 0,
-            #'packets_last_second': get_random_packet_count() 
-        })
-    
+##Really not must
 
 # Live Logging Capture Function
-class LogStreamView(APIView):
-     
-    def get(self, request):
-        def event_stream():
-            last_id = ZeekLog.objects.last().id if ZeekLog.objects.exists() else 0
-            
-            while True:
-                new_logs = ZeekLog.objects.filter(id__gt=last_id).order_by('id')
-                
-                for log in new_logs:
-                    yield f"data: {json.dumps({
-                        'id': log.id,
-                        'timestamp': log.timestamp.isoformat(),
-                        'log_type': log.log_type,
-                        'data': log.data
-                    })}\n\n"
-                    last_id = log.id
-                
-                time.sleep(1)
-
-        response = StreamingHttpResponse(
-            event_stream(),
-            content_type="text/event-stream"  
-        )
-        response['Cache-Control'] = 'no-cache'
-        response['Connection'] = 'keep-alive'
-        return response
-    
+## Really a not must
 
 ## AI Prediction functions
 

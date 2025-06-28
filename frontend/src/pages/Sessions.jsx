@@ -1,4 +1,5 @@
 import SessionTable from '../components/SessionTable';
+import useSessions from '../hooks/useSessions';
 
 export default function Sessions() {
   const { sessions } = useSessions();

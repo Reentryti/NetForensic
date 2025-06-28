@@ -4,6 +4,8 @@ import Dashboard from './pages/Dashboard';
 import Capture from './pages/Capture';
 import Sessions from './pages/Sessions';
 import SessionDetail from './components/SessionDetail';
+import './App.css';
+
 
 function App() {
   return (

@@ -1,27 +1,35 @@
 import useInterfaces from '../hooks/useInterfaces';
 import { useState } from 'react'; 
+import axios from 'axios';
+import { createPath } from 'react-router-dom';
+
 export default function CaptureForm() {
   const { interfaces, loading } = useInterfaces();
   const [form, setForm] = useState({
-    interface_id: '',
+    interface_name: '',
     filter: ''
   });
 
   const handleSubmit = () => {
+    e.preventDefault();
+
     axios.post('/api/capture/', form)
-      .then(() => alert('Capture démarrée !'));
+      .then(() => alert('Capture démarrée !'))
+      .catch(err => {
+        console.error(err);
+        alert('Erreur de démarrage de la capture');
+      });
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <select 
         value={form.interface_id}
-        onChange={(e) => setForm({...form, interface_id: e.target.value})}
-      >
+        onChange={(e) => setForm({...form, interface_id: e.target.value})}>
         <option value="">Sélectionner une interface</option>
         {interfaces.map(iface => (
-          <option key={iface.id} value={iface.id}>
-            {iface.name}
+          <option key={iface.name} value={iface.name}>
+            {iface.name} ({iface.type})
           </option>
         ))}
       </select>
