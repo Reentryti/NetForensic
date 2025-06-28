@@ -1,25 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 import axios from 'axios';
 
-export default function useInterfaces() {
+export default function useInterfaces(){
   const [interfaces, setInterfaces] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchInterfaces = async () => {
-      try {
-        const response = await axios.get('/api/interfaces/');
-        setInterfaces(response.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useEffect(() =>{
+  axios.get('api/interfaces/')
+  .then(res => setInterfaces(res.data))
+  .catch(err =>{
+    console.error("Erreur lors de la récupération des interfaces", err);
+    setInterfaces([]);
+  })
+  .finally(() => setLoading(false));
+}, []);
 
-    fetchInterfaces();
-  }, []);
+return {interfaces, loading};
+};
 
-  return { interfaces, loading, error };
-}
+

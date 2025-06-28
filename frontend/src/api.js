@@ -1,10 +1,21 @@
-import axios from 'axios';
+import axios from "axios";
 
-const api = axios.create({
-  baseURL: '/api',
-  withCredentials: true,
-});
+export async function startCapture() {
+    try{
+      const response = await axios.post('/api/capture/');
+      return response.data;
+    } catch (error) {
+      console.error("Erreur lors du lancement de la capture", error);
+      throw error;
+    }
+};
 
-export const fetchInterfaces = () => api.get('interfaces/');
-export const startCapture = (data) => api.post('capture/', data);
-export const stopCapture = (sessionId) => api.post(`capture/${sessionId}/stop/`);
+export async function generateReport() {
+  const response = await axios.get("/api/generate-report/"); 
+  return response.data;
+};
+
+export async function runAnalysis() {
+  const response = await axios.get("/api/analyse/");
+  return response.data;
+}

@@ -38,8 +38,7 @@ export default function InterfaceSelect({ onInterfaceChange }) {
     <div className="interface-selector">
       <select 
         onChange={(e) => onInterfaceChange(e.target.value)}
-        disabled={loading || error}
-      >
+        disabled={loading || error}>
         {loading && <option>Détection en cours...</option>}
         {error && <option>{error}</option>}
         
@@ -53,8 +52,7 @@ export default function InterfaceSelect({ onInterfaceChange }) {
       <button 
         type="button" 
         onClick={refreshInterfaces}
-        disabled={loading}
-      >
+        disabled={loading}>
         ⟳ Rafraîchir
       </button>
     </div>
