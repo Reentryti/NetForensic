@@ -155,3 +155,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ]
 }
+
+# Mistral APi
+# settings.py
+MISTRAL_API_KEY = config('MISTRAL_API_KEY')

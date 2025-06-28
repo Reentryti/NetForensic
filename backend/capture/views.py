@@ -16,7 +16,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .utils.log_analyser import analyze_conn_log
 import os
-
+import requests
+from django.conf import settings
 
 # Dictionnaire pour stocker les contrôleurs actifs
 active_controllers = {}
@@ -276,12 +277,54 @@ class AnalyzeCaptureAPIView(APIView):
         for entry in results:
             Prediction.objects.create(
                 session=session,
-                timestamp=entry['timestamp'],
-                src_port=entry['src_port'],
-                dst_port=entry['dst_port'],
-                proto=entry['proto'],
-                is_attack=entry['is_attack'],
-                confidence=entry['confidence']
+                timestamp=entry.get('timestamp'),
+                src_port=entry.get('src_port'),
+                dst_port=entry.get('dst_port'),
+                proto=entry.get('proto'),
+                is_attack=entry.get('is_attack'),
+                confidence=entry.get('confidence')
             )
 
         return Response({'status': 'success', 'message': f'{len(results)} entrées analysées'}, status=status.HTTP_200_OK)
+    
+# Rapport Generation with MistralAPI
+class GenerateReportAPIView(APIView):
+    def get(self, request, session_id):
+        predictions = Prediction.objects.filter(session__id=session_id)
+
+        if not predictions.exists():
+            return Response({'error': 'Aucune donnée pour cette session'}, status=404)
+
+        # Prompt 
+        prompt = "Analyse les connexions suivantes et indique s'il y a des signes d'attaque :\n"
+        for p in predictions:
+            prompt += f"- {p.timestamp} | {p.proto} | {p.src_port} -> {p.dst_port} | attaque: {p.is_attack} | confiance: {p.confidence:.2f}\n"
+        prompt += "\nFais un résumé clair et des recommandations."
+
+        # Mistral API 
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.MISTRAL_API_KEY}",
+                "HTTP-Referer": "http://localhost:8000",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "mistralai/mistral-7b-instruct",
+                "messages": [
+                    {"role": "system", "content": "Tu es un expert en cybersécurité."},
+                    {"role": "user", "content": prompt}
+                ]
+            }
+        )
+
+        if response.status_code != 200:
+            return Response({'error': 'Erreur appel LLM', 'details': response.text}, status=500)
+
+        result = response.json()
+        report = result['choices'][0]['message']['content']
+
+        return Response({
+            "prompt": prompt,
+            "report": report
+        })
