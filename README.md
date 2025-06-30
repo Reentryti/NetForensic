@@ -42,3 +42,64 @@
 - Détecter des comportements malveillants en temps réel
 - Conserver les preuves numériques pour les procédures légales
 - Fournir des interfaces intuitives d’exploration et d’analyse
+
+--- 
+
+##  Installation et exécution
+
+##  Côté Backend
+
+### 1. Cloner le projet
+
+```bash
+git clone https://github.com/Reentryti/NetForensic
+cd NetForensic
+```
+
+### 2. Créer un environnement virtuel (fortement recommandé)
+
+```bash
+python3 -m venv forensic
+source forensic/bin/activate
+```
+
+### 3. Installer les dépendances nécessaires
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Appliquer les migrations
+
+```bash
+cd backend
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### 5. Lancer le serveur
+
+```bash
+python manage.py runserver
+```
+---
+
+## Côté Frontend
+
+### 1. Se déplacer dans le dossier du frontend
+
+```bash
+cd frontend
+```
+
+### 2. Installer les dépendances
+
+``` bash
+npm install
+```
+
+### 3. Lancer le serveur
+
+``` bash
+npm run dev
+```
