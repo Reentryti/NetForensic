@@ -34,6 +34,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'capture',
+    'user',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +43,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
+    'two_factor',
 ]
 
 MIDDLEWARE = [
@@ -53,6 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_otp.middleware.OTPMiddleware',
 ]
 
 ROOT_URLCONF = 'NetForensic.urls'
@@ -159,3 +165,8 @@ REST_FRAMEWORK = {
 # Mistral APi
 # settings.py
 MISTRAL_API_KEY = config('MISTRAL_API_KEY')
+
+# Authentification configuration
+AUTH_USER_MODEL = 'user.User'
+LOGIN_URL = 'two_factor:login'
+LOGIN_REDIRECT_URL = 'capture:dashboard'
