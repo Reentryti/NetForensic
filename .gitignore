@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 zeek_logs
 models
+node_modules
