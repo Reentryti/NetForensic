@@ -4,36 +4,33 @@ import { fr } from 'date-fns/locale';
 
 export default function SessionTable({ data }) {
   return (
-    <table className="session-table">
+    <table className="w-full text-cyan-100 bg-blue-950/80 rounded-xl border border-cyan-700 shadow-md font-mono">
       <thead>
-        <tr>
-          <th>ID</th>
-          <th>Interface</th>
-          <th>Début</th>
-          <th>Durée</th>
-          <th>Actions</th>
+        <tr className="bg-cyan-900/60">
+          <th className="py-2 px-4 border-b border-cyan-700">ID</th>
+          <th className="py-2 px-4 border-b border-cyan-700">Interface</th>
+          <th className="py-2 px-4 border-b border-cyan-700">Début</th>
+          <th className="py-2 px-4 border-b border-cyan-700">Statut</th>
         </tr>
       </thead>
       <tbody>
-        {data.map((session) => (
-          <tr key={session.id}>
-            <td>{session.id}</td>
-            <td>{session.interface.name}</td>
-            <td>
-              {format(new Date(session.start_time), 'PPpp', { locale: fr })}
-            </td>
-            <td>
-              {session.end_time 
-                ? `${Math.round((new Date(session.end_time) - new Date(session.start_time)) / 60000)} min`
-                : 'En cours'}
-            </td>
-            <td>
-              <Link to={`/sessions/${session.id}`}>
-                <button>Détails</button>
-              </Link>
-            </td>
+        {data && data.length > 0 ? (
+          data.map(session => (
+            <tr key={session.id} className="hover:bg-cyan-900/30 transition-all">
+              <td className="py-2 px-4 border-b border-cyan-800 text-cyan-200 font-bold">{session.id}</td>
+              <td className="py-2 px-4 border-b border-cyan-800">{session.interface_name}</td>
+              <td className="py-2 px-4 border-b border-cyan-800">{new Date(session.start_time).toLocaleString()}</td>
+              <td className="py-2 px-4 border-b border-cyan-800">
+                <span className={`px-2 py-1 rounded text-xs font-semibold 
+                  ${session.status === 'running' ? 'bg-cyan-400 text-blue-950' : 'bg-cyan-900 text-cyan-200'}`}>{session.status}</span>
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan="4" className="py-4 text-center text-cyan-400">Aucune session trouvée.</td>
           </tr>
-        ))}
+        )}
       </tbody>
     </table>
   );

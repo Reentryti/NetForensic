@@ -31,13 +31,13 @@ export default function CapturePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-6">
-      <h1 className="text-3xl font-bold text-blue-700 text-center mb-8">Capture du trafic</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-10 px-6 font-sans">
+      <h1 className="text-3xl font-extrabold text-cyan-300 text-center mb-8 font-mono drop-shadow">Capture du trafic</h1>
 
       {loading ? (
-        <p className="text-center text-blue-500">Chargement...</p>
+        <p className="text-center text-cyan-400 animate-pulse">Chargement...</p>
       ) : error ? (
-        <p className="text-center text-red-600">{error}</p>
+        <p className="text-center text-red-400 bg-red-900/40 border border-red-600 rounded-lg p-4 max-w-xl mx-auto font-semibold">{error}</p>
       ) : (
         <>
           <div className="max-w-2xl mx-auto mb-10">
@@ -45,26 +45,26 @@ export default function CapturePage() {
           </div>
 
           {activeSession && (
-            <div className="bg-yellow-100 border border-yellow-300 rounded p-4 max-w-2xl mx-auto mb-6">
-              <h2 className="text-lg font-semibold text-yellow-800 mb-2">Session en cours</h2>
-              <p>Session ID: {activeSession.id}</p>
-              <p>Interface: {activeSession.interface_name}</p>
-              <p>Démarrée le: {new Date(activeSession.start_time).toLocaleString()}</p>
+            <div className="bg-yellow-100/10 border border-yellow-400 rounded-xl p-4 max-w-2xl mx-auto mb-6 shadow-lg">
+              <h2 className="text-lg font-bold text-yellow-300 mb-2 font-mono">Session en cours</h2>
+              <p className="text-cyan-100">Session ID: <span className='font-bold'>{activeSession.id}</span></p>
+              <p className="text-cyan-100">Interface: <span className='font-bold'>{activeSession.interface_name}</span></p>
+              <p className="text-cyan-100">Démarrée le: <span className='font-bold'>{new Date(activeSession.start_time).toLocaleString()}</span></p>
             </div>
           )}
 
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Sessions passées</h2>
-            <div className="bg-white shadow rounded p-4 divide-y">
+            <h2 className="text-2xl font-bold text-cyan-200 mb-4 font-mono">Sessions passées</h2>
+            <div className="bg-slate-800 shadow rounded-xl p-4 divide-y border border-slate-700">
               {sessions.filter(s => s.status !== 'running').length === 0 ? (
-                <p className="text-gray-500">Aucune session passée.</p>
+                <p className="text-cyan-400">Aucune session passée.</p>
               ) : (
                 sessions
                   .filter(s => s.status !== 'running')
                   .map(session => (
                     <div key={session.id} className="py-2">
-                      <p className="font-semibold">Session #{session.id}</p>
-                      <p className="text-sm text-gray-600">Interface: {session.interface_name} | {new Date(session.start_time).toLocaleString()}</p>
+                      <p className="font-semibold text-cyan-200">Session #{session.id}</p>
+                      <p className="text-sm text-cyan-100">Interface: {session.interface_name} | {new Date(session.start_time).toLocaleString()}</p>
                     </div>
                   ))
               )}

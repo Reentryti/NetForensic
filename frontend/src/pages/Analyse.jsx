@@ -31,20 +31,20 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-6">
-      <h1 className="text-3xl font-bold text-blue-700 text-center mb-6">Analyse du trafic</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-10 px-6 font-sans">
+      <h1 className="text-3xl font-extrabold text-cyan-300 text-center mb-6 font-mono drop-shadow">Analyse du trafic</h1>
 
-      <div className="max-w-xl mx-auto bg-white rounded shadow p-6">
-        <p className="mb-4 text-gray-600">Choisissez une session puis cliquez pour lancer l'analyse.</p>
+      <div className="max-w-xl mx-auto bg-slate-800 rounded-2xl shadow-xl p-8 border border-slate-700">
+        <p className="mb-4 text-slate-300">Choisissez une session puis cliquez pour lancer l'analyse.</p>
 
         <select
-          className="w-full mb-4 p-2 border rounded"
+          className="w-full mb-4 p-2 border border-cyan-700 rounded bg-slate-900 text-cyan-200 focus:ring-2 focus:ring-cyan-400"
           value={selectedSession}
           onChange={e => setSelectedSession(e.target.value)}
         >
           <option value="">-- Sélectionner une session --</option>
           {sessions.map(session => (
-            <option key={session.id} value={session.id}>
+            <option key={session.id} value={session.id} className="bg-slate-900 text-cyan-200">
               Session #{session.id} - {session.interface_name} - {new Date(session.start_time).toLocaleString()}
             </option>
           ))}
@@ -53,23 +53,23 @@ export default function AnalysisPage() {
         <button
           onClick={handleAnalysis}
           disabled={loading || !selectedSession}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+          className="w-full py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-md font-semibold shadow transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
           Lancer l'analyse
         </button>
 
         {loading && (
           <div className="mt-6 flex justify-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
 
-        {error && <p className="mt-4 text-red-600 text-center">{error}</p>}
+        {error && <p className="mt-4 text-red-400 bg-red-900/40 border border-red-600 rounded-lg p-4 text-center font-semibold">{error}</p>}
 
         {result && (
-          <div className="mt-6 bg-gray-50 border border-gray-200 rounded p-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Résultat de l'analyse</h2>
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap">
+          <div className="mt-6 bg-cyan-950/60 border border-cyan-700 rounded-xl p-4">
+            <h2 className="text-lg font-bold text-cyan-200 mb-2 font-mono">Résultat de l'analyse</h2>
+            <pre className="text-sm text-cyan-100 whitespace-pre-wrap">
               {JSON.stringify(result, null, 2)}
             </pre>
           </div>
