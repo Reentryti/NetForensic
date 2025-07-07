@@ -1,7 +1,7 @@
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import axios from 'axios';
 
-export default function CaptureForm({interfaces}){
+export default function CaptureForm({interfaces, activeSession, onSessionUpdate}){
     const [form, setForm] = useState({
         interface: '',
         filter: ''
@@ -11,10 +11,33 @@ export default function CaptureForm({interfaces}){
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState('');
     
+    useEffect(() => {
+        if(activeSession && !sessionId){
+            setSessionId(activeSession.id);
+            setCapturing(true);
+        } else{
+            setSessionId(null);
+            setCapturing(false);
+        }
+    },[activeSession] );
+
+    //Filter Validation Function
+    const isValidBpfFilter = (filter) => {
+        if (!filter) return true;
+        const pattern = /^(tcp|udp|ip|icmp|port|host|net)/i;
+        return pattern.test(filter.trim());
+        };
+
+
     //Capture function
     const startCapture = async () => {
         setLoading(true);
         setMsg('');
+        if (!isValidBpfFilter(form.filter)) {
+            setMsg('Filtre BPF invalide');
+            setLoading(false);
+            return;
+        }
         try{
             const response = await axios.post('/api/capture/', form);
             setSessionId(response.data.session_id);
@@ -29,6 +52,7 @@ export default function CaptureForm({interfaces}){
 
     //Stop capture function
     const stopCapture = async () => {
+        console.log("essaie d'arreter la session:", sessionId)
         if(!sessionId){
             setMsg('Session inconnue');
             return;
@@ -36,15 +60,17 @@ export default function CaptureForm({interfaces}){
         setLoading(true);
         setMsg('');
         try{
-            await axios.post(`/api/capture/${sessionId}/stop`);
+            await axios.post(`/api/capture/${sessionId}/stop/`);
             setCapturing(false);
-            setMsg('Capture arretee');
+            setMsg(null);
+            if (onSessionUpdate) onSessionUpdate();
         }catch{
             setMsg('Erreur lors de larret de la capture');
         }finally{
             setLoading(false);
         }
     };
+    
 
     //Button Visibility function
     const handleClick = () => {
@@ -65,8 +91,8 @@ export default function CaptureForm({interfaces}){
             className="w-full border rounded p-2"
             required
             disabled={capturing}
-            value={form.interface_name}
-            onChange={e => setForm({ ...form, interface_name: e.target.value })}
+            value={form.interface}
+            onChange={e => setForm({ ...form, interface: e.target.value })}
         >
             <option value="">-- Sélectionner --</option>
             {interfaces.map(i => (
@@ -91,7 +117,7 @@ export default function CaptureForm({interfaces}){
 
         <button
             onClick={handleClick}
-            disabled={loading || (!capturing && !form.interface_name)}
+            disabled={loading || (!capturing && !form.interface)}
             className={`w-full py-2 rounded text-white ${
             loading ? 'bg-gray-400' : capturing ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
             }`}
@@ -101,16 +127,20 @@ export default function CaptureForm({interfaces}){
 
         {msg && <p className="text-center text-sm">{msg}</p>}
 
-        {!capturing && sessionId && (
-            <div className="text-center mt-4">
-            <a
-                href={`/capture/${sessionId}/generate-report/`}
-                className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        {/* {!capturing && sessionId && (
+        <div className="text-center mt-4">
+            <button
+            onClick={() => {
+               
+                window.location.href = `/rapport/${sessionId}`;
+            }}
+            className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-                Voir le rapport de la session
-            </a>
-            </div>
-        )}
+            Voir le rapport de la session
+            </button>
+        </div>
+        )} */}
+
         </div>
     );
 }

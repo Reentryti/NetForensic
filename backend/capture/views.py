@@ -15,6 +15,11 @@ from .utils.log_analyser import analyze_conn_log
 import os
 import requests
 from django.conf import settings
+from django.http import StreamingHttpResponse
+import json
+import time
+from django.views import View
+from django.db.models import Exists, OuterRef
 
 # Dictionnaire pour stocker les contrôleurs actifs
 active_controllers = {}
@@ -135,13 +140,13 @@ class StopCaptureAPIView(APIView):
         )
 
 
-
 class SessionDetailAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, session_id):
         try:
-            session = CaptureSession.objects.get(id=session_id, user=request.user)
+            #session = CaptureSession.objects.get(id=session_id, user=request.user)
+            session = CaptureSession.objects.get(id=session_id)
             logs = ZeekLog.objects.filter(session=session).order_by('-timestamp')[:100]
             
             session_data = CaptureSessionSerializer(session).data
@@ -181,7 +186,33 @@ class InterfaceListAPIView(APIView):
 
 # Live Capture Visual Function
 ##Really not must
+class LogStreamView(View):
+    def get(self, request):
+        def event_stream():
+            last_id = ZeekLog.objects.last().id if ZeekLog.objects.exists() else 0
+            
+            while True:
+                new_logs = ZeekLog.objects.filter(id__gt=last_id).order_by('id')
+                
+                for log in new_logs:
+                    yield f"data: {json.dumps({
+                        'id': log.id,
+                        'timestamp': log.timestamp.isoformat(),
+                        'log_type': log.log_type,
+                        'data': log.data
+                    })}\n\n"
+                    last_id = log.id
+                
+                time.sleep(1)
 
+        response = StreamingHttpResponse(
+            event_stream(),
+            content_type="text/event-stream" 
+        )
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+    
 # Live Logging Capture Function
 ## Really a not must
 
@@ -247,6 +278,17 @@ class AnalyzeCaptureAPIView(APIView):
 
         return Response({'status': 'success', 'message': f'{len(results)} entrées analysées'}, status=status.HTTP_200_OK)
     
+class AnalyzedSessionsAPIView(APIView):
+    def get(self, request):
+        sessions = CaptureSession.objects.annotate(
+            is_analyzed=Exists(
+                Prediction.objects.filter(session=OuterRef('pk'))
+            )
+        ).filter(is_analyzed=True).order_by('-start_time')
+
+        serializer = CaptureSessionSerializer(sessions, many=True)
+        return Response(serializer.data)
+
 # Rapport Generation with MistralAPI
 class GenerateReportAPIView(APIView):
     def get(self, request, session_id):
@@ -256,10 +298,26 @@ class GenerateReportAPIView(APIView):
             return Response({'error': 'Aucune donnée pour cette session'}, status=404)
 
         # Prompt 
-        prompt = "Analyse les connexions suivantes et indique s'il y a des signes d'attaque :\n"
+        prompt = (
+            "Tu es un analyste en cybersécurité spécialisé dans la détection d'incidents et la réponse aux attaques. "
+            "Analyse les logs réseau suivants et génère un rapport détaillé à l'attention :\n"
+            "- des forces de sécurité (police numérique, gendarmerie, etc.)\n"
+            "- des CERTs (Computer Emergency Response Teams)\n"
+            "- des analystes SOC/CERT\n\n"
+            "Les logs sont dans le format : <timestamp> | <protocole> | <src_port> -> <dst_port> | attaque: <is_attack> | confiance: <confiance>\n"
+        )
         for p in predictions:
             prompt += f"- {p.timestamp} | {p.proto} | {p.src_port} -> {p.dst_port} | attaque: {p.is_attack} | confiance: {p.confidence:.2f}\n"
-        prompt += "\nFais un résumé clair et des recommandations."
+        prompt += (
+            "\nGénère un rapport structuré comprenant :\n"
+            "1. Un résumé exécutif de la situation (niveau de menace global, nombre d'attaques détectées, typologies)\n"
+            "2. Une liste des incidents suspects/confirmés avec leurs caractéristiques clés (timestamp, protocole, ports, niveau de confiance)\n"
+            "3. Une évaluation du niveau de gravité (faible/moyen/élevé/critique)\n"
+            "4. Des recommandations techniques concrètes (filtrage, mise en quarantaine, alerte, collecte de preuves)\n"
+            "5. Les actions à entreprendre à court terme pour contenir et remédier\n"
+            "6. Les éléments exploitables juridiquement s'il y en a (adresse IP, timestamp, répétition, etc.)\n"
+            "Utilise un ton professionnel et concis, adapté à une cellule de crise.\n"
+        )
 
         # Mistral API 
         response = requests.post(

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import CaptureForm from '../components/CaptureForm';
+import LiveLogViewer from '../components/LiveLogViewer';
 
 export default function CapturePage() {
   const [interfaces, setInterfaces] = useState([]);
@@ -8,6 +9,17 @@ export default function CapturePage() {
   const [error, setError] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
+
+    const refreshSessions = async () => {
+      try {
+        const sessionRes = await axios.get('/api/sessions/');
+        setSessions(sessionRes.data);
+        const active = sessionRes.data.find(s => s.status === 'running');
+        setActiveSession(active || null);
+      } catch (err) {
+        console.error("Erreur lors du rafraîchissement des sessions", err);
+      }
+    };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,16 +53,23 @@ export default function CapturePage() {
       ) : (
         <>
           <div className="max-w-2xl mx-auto mb-10">
-            <CaptureForm interfaces={interfaces} />
+            <CaptureForm interfaces={interfaces} activeSession={activeSession} onSessionUpdate={refreshSessions} />
           </div>
 
           {activeSession && (
-            <div className="bg-yellow-100 border border-yellow-300 rounded p-4 max-w-2xl mx-auto mb-6">
-              <h2 className="text-lg font-semibold text-yellow-800 mb-2">Session en cours</h2>
-              <p>Session ID: {activeSession.id}</p>
-              <p>Interface: {activeSession.interface_name}</p>
-              <p>Démarrée le: {new Date(activeSession.start_time).toLocaleString()}</p>
-            </div>
+            <>
+              <div className="bg-yellow-100 border border-yellow-300 rounded p-4 max-w-2xl mx-auto mb-6">
+                <h2 className="text-lg font-semibold text-yellow-800 mb-2">Session en cours</h2>
+                <p>Session ID: {activeSession.id}</p>
+                <p>Interface: {activeSession.interface_name}</p>
+                <p>Démarrée le: {new Date(activeSession.start_time).toLocaleString()}</p>
+              </div>
+              
+              <div className="max-w-4xl mx-auto mb-10">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4">Logs réseau en temps réel</h2>
+                <LiveLogViewer />
+              </div>
+            </>
           )}
 
           <div className="max-w-4xl mx-auto">
@@ -64,7 +83,7 @@ export default function CapturePage() {
                   .map(session => (
                     <div key={session.id} className="py-2">
                       <p className="font-semibold">Session #{session.id}</p>
-                      <p className="text-sm text-gray-600">Interface: {session.interface_name} | {new Date(session.start_time).toLocaleString()}</p>
+                      <p className="text-sm text-gray-600">Interface: {session.interface} | {new Date(session.start_time).toLocaleString()}</p>
                     </div>
                   ))
               )}
