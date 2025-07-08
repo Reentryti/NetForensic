@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Création de compte{% endblock %}
+
+{% block content %}
+<div class="card auth-card">
+    <div class="card-body p-4">
+        <h2 class="card-title text-center mb-4">Créer un compte</h2>
+        
+        <form method="post" id="signup-form">
+            {% csrf_token %}
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="id_first_name" class="form-label">Prénom</label>
+                    <input type="text" name="first_name" id="id_first_name" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="id_last_name" class="form-label">Nom</label>
+                    <input type="text" name="last_name" id="id_last_name" class="form-control" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_email" class="form-label">Adresse email</label>
+                <input type="email" name="email" id="id_email" class="form-control" required>
+                <div class="form-text">Nous ne partagerons jamais votre email.</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_password1" class="form-label">Mot de passe</label>
+                <input type="password" name="password1" id="id_password1" class="form-control" required>
+                <div class="password-strength-meter mt-2">
+                    <div class="progress">
+                        <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div id="password-strength-text" class="form-text"></div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_password2" class="form-label">Confirmation du mot de passe</label>
+                <input type="password" name="password2" id="id_password2" class="form-control" required>
+            </div>
+            
+            <div class="mb-3 form-check">
+                <input type="checkbox" name="terms" id="id_terms" class="form-check-input" required>
+                <label for="id_terms" class="form-check-label">J'accepte les <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">conditions d'utilisation</a></label>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Créer mon compte</button>
+            </div>
+        </form>
+        
+        <hr class="my-4">
+        
+        <div class="text-center">
+            <p class="mb-2">Déjà un compte?</p>
+            <a href="{% url 'login' %}" class="btn btn-outline-primary">Se connecter</a>
+        </div>
+    </div>
+</div>
+
+<!-- User Policy -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="termsModalLabel">Conditions d'utilisation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Veuillez lire et accepter nos conditions d'utilisation...</p>
+                <!-- Content-->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">J'ai compris</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const password1 = document.getElementById('id_password1');
+    const password2 = document.getElementById('id_password2');
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+    
+    password1.addEventListener('input', function() {
+        const result = zxcvbn(password1.value);
+        const strength = result.score;
+        
+        const width = (strength + 1) * 25;
+        strengthBar.style.width = width + '%';
+        
+        switch(strength) {
+            case 0:
+                strengthBar.className = 'progress-bar bg-danger';
+                strengthText.textContent = 'Très faible';
+                break;
+            case 1:
+                strengthBar.className = 'progress-bar bg-danger';
+                strengthText.textContent = 'Faible';
+                break;
+            case 2:
+                strengthBar.className = 'progress-bar bg-warning';
+                strengthText.textContent = 'Moyen';
+                break;
+            case 3:
+                strengthBar.className = 'progress-bar bg-info';
+                strengthText.textContent = 'Fort';
+                break;
+            case 4:
+                strengthBar.className = 'progress-bar bg-success';
+                strengthText.textContent = 'Très fort';
+                break;
+        }
+        
+        if (password2.value && password1.value !== password2.value) {
+            password2.setCustomValidity('Les mots de passe ne correspondent pas');
+        } else {
+            password2.setCustomValidity('');
+        }
+    });
+    
+    password2.addEventListener('input', function() {
+        if (password1.value !== password2.value) {
+            password2.setCustomValidity('Les mots de passe ne correspondent pas');
+        } else {
+            password2.setCustomValidity('');
+        }
+    });
+    
+
+    const form = document.getElementById('signup-form');
+    form.addEventListener('submit', function() {
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Création en cours...';
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

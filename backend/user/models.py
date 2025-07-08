@@ -18,13 +18,21 @@ class DefaultUserManager(BaseUserManager):
     def create_superuser(self, email,  first_name, last_name, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')
         return self.create_user(email, first_name, last_name, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
-
+    ROLES_CHOICES = (
+        ('enqueteur', 'Enquêteur'),
+        ('juge', 'Juge'),
+        ('invite', 'Invité'),
+        ('admin', 'Administrateur'),
+    )
+    
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     email = models.EmailField(unique=True)
+    role = models.CharField(max_length=20, choices=ROLES_CHOICES, default='invite')
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -35,4 +43,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = DefaultUserManager()
     
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name} ({self.role})"
+    
+    def has_role(self, role_name):
+        return self.role == role_name

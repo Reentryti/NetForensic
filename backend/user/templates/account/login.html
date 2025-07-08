@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion{% endblock %}
+
+{% block content %}
+<div class="card auth-card">
+    <div class="card-body p-4">
+        <h2 class="card-title text-center mb-4">Connexion</h2>
+        
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            <strong>Erreur:</strong> Nom d'utilisateur ou mot de passe incorrect.
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label for="id_email" class="form-label">Adresse email</label>
+                <input type="email" name="email" id="id_email" class="form-control" required autofocus>
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_password" class="form-label">Mot de passe</label>
+                <input type="password" name="password" id="id_password" class="form-control" required>
+                <div class="text-end mt-2">
+                    <a href="{% url 'password_reset' %}" class="text-decoration-none">Mot de passe oublié?</a>
+                </div>
+            </div>
+            
+            <div class="mb-3 form-check">
+                <input type="checkbox" name="remember_me" id="id_remember_me" class="form-check-input">
+                <label for="id_remember_me" class="form-check-label">Se souvenir de moi</label>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Se connecter</button>
+            </div>
+        </form>
+        
+        <hr class="my-4">
+        
+        <div class="text-center">
+            <p class="mb-2">Pas encore de compte?</p>
+            <a href="{% url 'signup' %}" class="btn btn-outline-primary">Créer un compte</a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    const form = document.querySelector('form');
+    let failedAttempts = 0;
+    
+    form.addEventListener('submit', function(e) {
+        if (failedAttempts >= 3) {
+            e.preventDefault();
+            alert('Trop de tentatives échouées. Veuillez patienter ou réinitialiser votre mot de passe.');
+            return false;
+        }
+    });
+    
+    
+});
+</script>
+{% endblock %}
