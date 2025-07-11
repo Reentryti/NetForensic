@@ -15,14 +15,19 @@ from .utils.log_analyser import analyze_conn_log
 import os
 import requests
 from django.conf import settings
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, HttpResponse
 import json
 import time
 from django.views import View
 from django.db.models import Exists, OuterRef
+from django.template.loader import render_to_string
+from weasyprint import HTML
 
 # Dictionnaire pour stocker les contrôleurs actifs
 active_controllers = {}
+
+# Stats capture file path
+STATS_PATH = "stats.log"
 
 # Capture Function
 ## Making some test by accessing the endpoint and making a request with content {"interface": "eth0", "filter": "port 80"}
@@ -30,7 +35,7 @@ class CaptureAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        # Récupération des paramètres
+        # Parameters get
         interface_name = request.data.get('interface')
         capture_filter = request.data.get('filter', '')
 
@@ -41,10 +46,9 @@ class CaptureAPIView(APIView):
             )
 
         try:
-            # Détection des interfaces disponibles
+            # Availables interfaces detection
             available_interfaces = detect_interfaces()
             
-            # Vérification que l'interface demandée existe
             if not any(iface['name'] == interface_name for iface in available_interfaces):
                 return Response(
                     {
@@ -54,7 +58,7 @@ class CaptureAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Création de la session de capture
+            # Session creation
             session = CaptureSession.objects.create(
                 user=request.user if request.user.is_authenticated else None,
                 interface_name=interface_name,
@@ -64,7 +68,7 @@ class CaptureAPIView(APIView):
                 log_dir=f"zeek_logs/{timezone.now().strftime('%Y%m%d_%H%M%S')}"
             )
 
-            # Lancement de la capture dans un thread séparé
+            # Capture Launch
             try:
 
                 controller = ZeekController(session.id)
@@ -131,7 +135,6 @@ class StopCaptureAPIView(APIView):
             else:
                 print(f"[WARN] Fichier {log_path} introuvable.")
 
-            # Nettoyage
             del active_controllers[session_id]
 
         return Response(
@@ -184,7 +187,7 @@ class InterfaceListAPIView(APIView):
 
 # Visualisation on the dashboard part
 
-# Live Capture Visual Function
+# Live Logging Visual Function
 ##Really not must
 class LogStreamView(View):
     def get(self, request):
@@ -213,8 +216,27 @@ class LogStreamView(View):
         response['X-Accel-Buffering'] = 'no'
         return response
     
-# Live Logging Capture Function
-## Really a not must
+# Live Stats Capture Function
+## A must be nice
+class LiveStatsAPIView(APIView):
+    def get(self, request):
+        if not os.path.exists(STATS_PATH):
+            return Response({"error": "stats.log introuvable"}, status=404)
+
+        with open(STATS_PATH, "rb") as f:
+            f.seek(-4096, os.SEEK_END)
+            lines = f.readlines()
+        last = lines[-1].decode("utf-8")
+        data = json.loads(last)
+
+        return Response({
+            "timestamp": data["ts"],
+            "packet_count": data["capture_stats"]["packets"],
+            "bytes":        data["capture_stats"]["bytes_recv"],
+            "dropped":      data["capture_stats"]["dropped"],
+            "throughput_mbps": round(data["capture_stats"]["bytes_recv"] * 8 / 1_000_000, 2),
+            "active_conns":  data["mem"]["conn_conn_vals"],
+        })
 
 ## AI Prediction functions
 
@@ -299,25 +321,32 @@ class GenerateReportAPIView(APIView):
 
         # Prompt 
         prompt = (
-            "Tu es un analyste en cybersécurité spécialisé dans la détection d'incidents et la réponse aux attaques. "
-            "Analyse les logs réseau suivants et génère un rapport détaillé à l'attention :\n"
-            "- des forces de sécurité (police numérique, gendarmerie, etc.)\n"
-            "- des CERTs (Computer Emergency Response Teams)\n"
-            "- des analystes SOC/CERT\n\n"
-            "Les logs sont dans le format : <timestamp> | <protocole> | <src_port> -> <dst_port> | attaque: <is_attack> | confiance: <confiance>\n"
+            "Tu es un analyste senior en cybersécurité, spécialisé dans la détection d'intrusions et la réponse aux incidents. "
+            "Tu dois rédiger un rapport clair, structuré et compréhensible à partir de logs réseau, destiné à plusieurs publics :\n"
+            "- Les forces de sécurité (ex : police numérique, gendarmerie)\n"
+            "- Les CERT (Computer Emergency Response Teams)\n"
+            "- Les analystes SOC/CERT\n"
+            "- Et des décideurs non techniques en cellule de crise\n\n"
+            
+            "Les logs réseau sont fournis dans le format suivant :\n"
+            "<timestamp> | <protocole réseau> | <port source> -> <port destination> | attaque: <oui/non> | confiance: <valeur entre 0 et 1>\n\n"
+            
+            "Voici les données à analyser :\n"
         )
         for p in predictions:
             prompt += f"- {p.timestamp} | {p.proto} | {p.src_port} -> {p.dst_port} | attaque: {p.is_attack} | confiance: {p.confidence:.2f}\n"
+
         prompt += (
-            "\nGénère un rapport structuré comprenant :\n"
-            "1. Un résumé exécutif de la situation (niveau de menace global, nombre d'attaques détectées, typologies)\n"
-            "2. Une liste des incidents suspects/confirmés avec leurs caractéristiques clés (timestamp, protocole, ports, niveau de confiance)\n"
-            "3. Une évaluation du niveau de gravité (faible/moyen/élevé/critique)\n"
-            "4. Des recommandations techniques concrètes (filtrage, mise en quarantaine, alerte, collecte de preuves)\n"
-            "5. Les actions à entreprendre à court terme pour contenir et remédier\n"
-            "6. Les éléments exploitables juridiquement s'il y en a (adresse IP, timestamp, répétition, etc.)\n"
-            "Utilise un ton professionnel et concis, adapté à une cellule de crise.\n"
+            "\nÀ partir de ces données, rédige un **rapport professionnel clair et exploitable**, qui contienne les sections suivantes :\n"
+            "1. **Résumé exécutif** : vue d'ensemble accessible à des non-techniciens, précisant le niveau global de menace, le nombre d'incidents détectés, les types d'attaques présumées (ex : scans, exfiltrations, accès non autorisé).\n"
+            "2. **Liste des incidents détectés ou suspects** : tableau ou liste structurée avec les détails clés (horodatage, protocole, ports, indicateur d'attaque, niveau de confiance).\n"
+            "3. **Évaluation de la gravité** : catégoriser chaque incident (faible / moyen / élevé / critique) avec justification.\n"
+            "4. **Recommandations techniques immédiates** : actions concrètes à mettre en œuvre (ex : blocage IP, filtrage, mise en quarantaine, renforcement des journaux, capture des paquets).\n"
+            "5. **Mesures de remédiation** à court terme : procédures de contournement ou de récupération.\n"
+            "6. **Éléments exploitables juridiquement** : preuves ou traces qui peuvent être utilisées dans le cadre d'une enquête (horodatage précis, adresses IP, nombre de répétitions, corrélations).\n\n"
+            "Utilise un ton professionnel, concis et adapté à une communication en situation d'incident. Évite le jargon technique ou explique-le brièvement."
         )
+
 
         # Mistral API 
         response = requests.post(
@@ -342,7 +371,13 @@ class GenerateReportAPIView(APIView):
         result = response.json()
         report = result['choices'][0]['message']['content']
 
-        return Response({
-            "prompt": prompt,
-            "report": report
+        html_string = render_to_string('reports/generated_report.html',{
+            'report': report,
+            'date': timezone.now().date()
         })
+
+        pdf_file = HTML(string=html_string).write_pdf()
+
+        response = HResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="rapportSecurite.pdf"'
+        return response

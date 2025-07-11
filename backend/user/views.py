@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.encoding import force_str
-from django.utils.http import urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from django_otp.util import random_hex
@@ -54,24 +54,7 @@ class RegistrationView(View):
         
         return render(request, self.template_name, {'form': form})
 
-class VerifyEmailView(View):
-    def get(self, request, uidb64, token):
-        try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-            
-            if default_token_generator.check_token(user, token):
-                user.is_active = True
-                user.email_verified = True
-                user.save()
-                messages.success(request, 'Email vérifié avec succès! Vous pouvez maintenant vous connecter.')
-                return redirect('login')
-            else:
-                messages.error(request, 'Lien de vérification invalide ou expiré.')
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            messages.error(request, 'Lien de vérification invalide.')
-        
-        return redirect('login')
+
 
 class LoginView(View):
     template_name = 'account/login.html'
@@ -95,7 +78,6 @@ class LoginView(View):
                     messages.error(request, 'Veuillez vérifier votre email avant de vous connecter.')
                     return render(request, self.template_name, {'form': form})
                 
-                # Vérifier si 2FA est activé
                 if TOTPDevice.objects.filter(user=user, confirmed=True).exists():
                     request.session['auth_user_id'] = user.id
                     request.session['auth_user_backend'] = user.backend
@@ -110,6 +92,7 @@ class LoginView(View):
             messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
         
         return render(request, self.template_name, {'form': form})
+
 
 class TwoFactorVerifyView(View):
     template_name = 'account/two_factor.html'
@@ -142,17 +125,16 @@ class TwoFactorVerifyView(View):
         
         return render(request, self.template_name, {'form': form})
 
+
 class SetupTwoFactorView(View):
     template_name = 'account/two_factor_setup.html'
     form_class = SetupTwoFactorForm
 
     @method_decorator(login_required)
     def get(self, request):
-        # Générer une clé secrète pour le TOTP
+       
         secret_key = random_hex(20)
         request.session['totp_secret'] = secret_key
-        
-        # Générer le QR code
         uri = f"otpauth://totp/{settings.APP_NAME}:{request.user.email}?secret={secret_key}&issuer={settings.APP_NAME}"
         img = qrcode.make(uri, image_factory=qrcode.image.svg.SvgImage)
         buffer = BytesIO()
@@ -187,6 +169,7 @@ class SetupTwoFactorView(View):
         
         return render(request, self.template_name, {'form': form})
 
+
 class PasswordResetRequestView(View):
     template_name = 'account/password_reset.html'
     form_class = PasswordResetRequestForm
@@ -202,11 +185,11 @@ class PasswordResetRequestView(View):
             user = User.objects.filter(email=email).first()
             
             if user:
-                # Générer token de réinitialisation
+               
                 token = default_token_generator.make_token(user)
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 
-                # Envoyer email de réinitialisation
+               
                 reset_link = f"{settings.BASE_URL}/accounts/password-reset-confirm/{uid}/{token}/"
                 send_mail(
                     'Réinitialisation de votre mot de passe',
@@ -215,12 +198,12 @@ class PasswordResetRequestView(View):
                     [user.email],
                     fail_silently=False,
                 )
-            
-            # Toujours retourner le même message pour éviter l'énumération d'emails
+          
             messages.success(request, 'Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.')
             return redirect('password_reset_done')
         
         return render(request, self.template_name, {'form': form})
+
 
 class PasswordResetConfirmView(View):
     template_name = 'account/password_reset_confirm.html'
@@ -262,11 +245,13 @@ class PasswordResetConfirmView(View):
         
         return redirect('password_reset')
 
+
 class LogoutView(View):
     def get(self, request):
         logout(request)
         messages.success(request, 'Vous avez été déconnecté avec succès.')
         return redirect('login')
+
 
 class ProfileView(View):
     template_name = 'account/profile.html'
@@ -276,22 +261,3 @@ class ProfileView(View):
         has_2fa = TOTPDevice.objects.filter(user=request.user, confirmed=True).exists()
         return render(request, self.template_name, {'has_2fa': has_2fa})
 
-class ResendVerificationEmailView(View):
-    def get(self, request):
-        if request.user.is_authenticated and not request.user.email_verified:
-            token = default_token_generator.make_token(request.user)
-            uid = urlsafe_base64_encode(force_bytes(request.user.pk))
-            
-            verification_link = f"{settings.BASE_URL}/accounts/verify-email/{uid}/{token}/"
-            send_mail(
-                'Vérification de votre email',
-                f'Cliquez sur ce lien pour vérifier votre email : {verification_link}',
-                settings.DEFAULT_FROM_EMAIL,
-                [request.user.email],
-                fail_silently=False,
-            )
-            messages.success(request, 'Email de vérification renvoyé!')
-        else:
-            messages.warning(request, 'Votre email est déjà vérifié ou vous n\'êtes pas connecté.')
-        
-        return redirect('profile')

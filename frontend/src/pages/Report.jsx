@@ -4,11 +4,10 @@ import axios from "axios";
 export default function ReportPage() {
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState('');
-  const [report, setReport] = useState('');
+  const [pdfUrl, setPdfUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Charger les sessions au chargement
   useEffect(() => {
     axios.get('/api/sessions/analyzed/')
       .then(res => setSessions(res.data))
@@ -20,17 +19,33 @@ export default function ReportPage() {
 
     setLoading(true);
     setError('');
-    setReport('');
+    setPdfUrl('');
 
     try {
-      const res = await axios.get(`/api/capture/${selectedSession}/generate-report/`);
-      setReport(res.data.report || "Aucun rapport disponible.");
+      const res = await axios.get(`/api/capture/${selectedSession}/generate-report/`, {
+        responseType: 'blob'
+      });
+
+      const file = new Blob([res.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      setPdfUrl(fileURL);
+
     } catch (err) {
       console.error(err);
       setError("Erreur lors de la génération du rapport.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownload = () => {
+    if (!pdfUrl) return;
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.setAttribute('download', `rapport_session_${selectedSession}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   return (
@@ -63,15 +78,21 @@ export default function ReportPage() {
 
         {error && <p className="mt-4 text-red-600 text-center">{error}</p>}
 
-        {report && (
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Rapport généré</h2>
-            <textarea
-              className="w-full h-96 border rounded p-4 font-mono text-sm resize-none"
-              value={report}
-              readOnly
-              placeholder="Le rapport généré apparaîtra ici..."
+        {pdfUrl && (
+          <div className="mt-6 flex flex-col items-center">
+            <iframe
+              src={pdfUrl}
+              title="Rapport PDF"
+              width="100%"
+              height="600px"
+              className="border"
             />
+            <button
+              onClick={handleDownload}
+              className="mt-4 py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded"
+            >
+              Télécharger le rapport PDF
+            </button>
           </div>
         )}
       </div>
