@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration 2FA Obligatoire - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <div class="card">
+        <div class="card-header text-center">
+            <h4 class="mb-0">
+                <i class="bi bi-shield-lock text-primary"></i>
+                Configuration de l'authentification à deux facteurs
+            </h4>
+            <p class="text-muted mb-0 mt-2">Étape obligatoire pour sécuriser votre compte</p>
+        </div>
+        <div class="card-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Configuration requise</strong>
+                <p class="mb-0 mt-2">
+                    L'authentification à deux facteurs est obligatoire pour accéder à votre compte. 
+                    Veuillez configurer votre application d'authentification.
+                </p>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">
+                        <span class="badge bg-primary me-2">1</span>
+                        Scannez le QR Code
+                    </h5>
+                    <div class="text-center mb-3">
+                        <div id="qr-code" class="border rounded p-3 bg-white">
+                            {{ qr_code|safe }}
+                        </div>
+                    </div>
+                    <p class="text-muted small">
+                        Utilisez une application comme <strong>Google Authenticator</strong>, 
+                        <strong>Microsoft Authenticator</strong> ou <strong>Authy</strong>
+                    </p>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5 class="mb-3">
+                        <span class="badge bg-primary me-2">2</span>
+                        Vérifiez la configuration
+                    </h5>
+                    
+                    <form method="post" action="{% url 'two_factor_setup' %}" id="setupForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="otp_code" class="form-label">Code d'authentification</label>
+                            <input type="text" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="otp_code" 
+                                   name="otp_code" 
+                                   placeholder="000000" 
+                                   maxlength="6" 
+                                   pattern="[0-9]{6}" 
+                                   autocomplete="one-time-code"
+                                   autofocus
+                                   required>
+                            <div class="form-text text-center">
+                                Entrez le code à 6 chiffres de votre app
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="setupBtn">
+                                <i class="bi bi-check-circle"></i>
+                                Finaliser la configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="row">
+                <div class="col-12">
+                    <h6 class="text-muted">Applications recommandées :</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <i class="bi bi-google display-6 text-success"></i>
+                            <p class="small mb-0">Google<br>Authenticator</p>
+                        </div>
+                        <div class="col-4">
+                            <i class="bi bi-microsoft display-6 text-primary"></i>
+                            <p class="small mb-0">Microsoft<br>Authenticator</p>
+                        </div>
+                        <div class="col-4">
+                            <i class="bi bi-shield-check display-6 text-warning"></i>
+                            <p class="small mb-0">Authy</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInput = document.getElementById('otp_code');
+    const form = document.getElementById('setupForm');
+    const setupBtn = document.getElementById('setupBtn');
+    
+    // Auto-format OTP input
+    otpInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 6) {
+            value = value.slice(0, 6);
+        }
+        e.target.value = value;
+        
+        // Visual feedback for complete code
+        if (value.length === 6) {
+            e.target.classList.add('is-valid');
+        } else {
+            e.target.classList.remove('is-valid');
+        }
+    });
+    
+    // Auto-submit when 6 digits are entered
+    otpInput.addEventListener('input', function(e) {
+        if (e.target.value.length === 6) {
+            setTimeout(() => {
+                if (e.target.value.length === 6) {
+                    form.submit();
+                }
+            }, 500);
+        }
+    });
+    
+    // Form submission handling
+    form.addEventListener('submit', function(e) {
+        setupBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Configuration...';
+        setupBtn.disabled = true;
+    });
+});
+</script>
+{% endblock %}

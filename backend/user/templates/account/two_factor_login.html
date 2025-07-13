@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Vérification 2FA - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <div class="card">
+        <div class="card-header text-center">
+            <h4 class="mb-0">
+                <i class="bi bi-shield-check text-success"></i>
+                Authentification à deux facteurs
+            </h4>
+        </div>
+        <div class="card-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="text-center mb-4">
+                <div class="display-1 text-primary mb-3">
+                    <i class="bi bi-phone"></i>
+                </div>
+                <h5>Bonjour {{ user.get_full_name|default:user.username }}</h5>
+                <p class="text-muted mb-0">
+                    Entrez le code d'authentification à 6 chiffres généré depuis votre application
+                </p>
+            </div>
+
+            <form method="post" action="{% url 'two_factor_verify' %}" id="otpForm">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="otp_code" class="form-label visually-hidden">Code d'authentification</label>
+                    <input type="text" 
+                           class="form-control form-control-lg text-center" 
+                           id="otp_code" 
+                           name="otp_code" 
+                           placeholder="000000" 
+                           maxlength="6" 
+                           pattern="[0-9]{6}" 
+                           autocomplete="one-time-code"
+                           autofocus
+                           required>
+                    <div class="form-text text-center">
+                        Code à 6 chiffres de votre application d'authentification
+                    </div>
+                </div>
+
+                <div class="d-grid mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="verifyBtn">
+                        <i class="bi bi-check-circle"></i>
+                        Vérifier et se connecter
+                    </button>
+                </div>
+            </form>
+
+            <hr>
+
+            <div class="text-center">
+                <a href="{% url 'logout' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Se déconnecter
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInput = document.getElementById('otp_code');
+    const form = document.getElementById('otpForm');
+    const verifyBtn = document.getElementById('verifyBtn');
+    
+    otpInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 6) {
+            value = value.slice(0, 6);
+        }
+        e.target.value = value;
+        
+        if (value.length === 6) {
+            e.target.classList.add('is-valid');
+            e.target.classList.remove('is-invalid');
+        } else if (value.length > 0) {
+            e.target.classList.remove('is-valid', 'is-invalid');
+        }
+    });
+    
+    otpInput.addEventListener('input', function(e) {
+        if (e.target.value.length === 6) {
+            setTimeout(() => {
+                if (e.target.value.length === 6) {
+                    form.submit();
+                }
+            }, 500);
+        }
+    });
+    
+    form.addEventListener('submit', function(e) {
+        verifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Vérification...';
+        verifyBtn.disabled = true;
+    });
+ 
+    otpInput.focus();
+    
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            otpInput.focus();
+        }
+    });
+});
+</script>
+{% endblock %}
