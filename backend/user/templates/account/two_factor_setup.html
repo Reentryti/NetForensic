@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Configuration 2FA Obligatoire - {{ super() }}{% endblock %}
+{% block title %}Configuration 2FA Obligatoire {% endblock %}
 
 {% block content %}
 <div class="auth-card">
@@ -39,13 +39,11 @@
                     </h5>
                     <div class="text-center mb-3">
                         <div id="qr-code" class="border rounded p-3 bg-white">
-                            {{ qr_code|safe }}
+                            <img src="data:image/png;base64,{{ qr_code_image }}" alt="QR Code"  class="img-fluid mb-3" style="width: 200px; height: 200px;">
                         </div>
+                        
                     </div>
-                    <p class="text-muted small">
-                        Utilisez une application comme <strong>Google Authenticator</strong>, 
-                        <strong>Microsoft Authenticator</strong> ou <strong>Authy</strong>
-                    </p>
+                    
                 </div>
                 
                 <div class="col-md-6">
@@ -132,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Auto-submit when 6 digits are entered
+    // Auto-submit w/6 digits entered
     otpInput.addEventListener('input', function(e) {
         if (e.target.value.length === 6) {
             setTimeout(() => {

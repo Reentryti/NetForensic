@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import CaptureForm from '../components/CaptureForm';
 import LiveLogViewer from '../components/LiveLogViewer';
+import LiveStatsCard from '../components/LiveStats';
 
 export default function CapturePage() {
   const [interfaces, setInterfaces] = useState([]);
@@ -71,6 +72,11 @@ export default function CapturePage() {
               </div>
             </>
           )}
+
+          <div className="max-w-4xl mx-auto mb-10">
+              <h2 className="text-2xl font-semibold mb-4">Statistiques en temps réel</h2>
+              <LiveStatsCard />
+          </div>
 
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Sessions passées</h2>

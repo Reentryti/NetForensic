@@ -168,8 +168,8 @@ MISTRAL_API_KEY = config('MISTRAL_API_KEY')
 
 # Authentification configuration
 AUTH_USER_MODEL = 'user.User'
-LOGIN_URL = 'two_factor:login'
-LOGIN_REDIRECT_URL = 'capture:dashboard'
+#LOGIN_URL = 'two_factor:login'
+#LOGIN_REDIRECT_URL = 'capture:dashboard'
 
 # Session Configuration
 SESSION_COOKIE_AGE = 1209600
@@ -178,3 +178,6 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Explicit dashboard redirection
+FRONTEND_DASHBOARD_URL = "http://localhost:5173/"

@@ -238,8 +238,8 @@ class LiveStatsAPIView(APIView):
             "active_conns":  data["mem"]["conn_conn_vals"],
         })
 
-## AI Prediction functions
 
+## AI Prediction functions
 # Initialisation globale
 predictor = PredictionIA()
 
