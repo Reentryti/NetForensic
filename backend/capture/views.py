@@ -220,14 +220,25 @@ class LogStreamView(View):
 ## A must be nice
 class LiveStatsAPIView(APIView):
     def get(self, request):
-        if not os.path.exists(STATS_PATH):
-            return Response({"error": "stats.log introuvable"}, status=404)
+        #Select the current running stats file 
+        session = CaptureSession.objects.filter(status='running').first()
+        if not session :
+            return Response(self._zero_stats(), status=200)
+        stats_path = os.path.join(session.log_dir, "stats.log")
 
-        with open(STATS_PATH, "rb") as f:
-            f.seek(-4096, os.SEEK_END)
-            lines = f.readlines()
-        last = lines[-1].decode("utf-8")
-        data = json.loads(last)
+        if not os.path.exists(stats_path):
+            return Response(self._zero_stats(), status=200)
+
+        try: 
+
+            with open(STATS_PATH, "rb") as f:
+                f.seek(0, os.SEEK_END)
+                size = f.tell()
+                f.seek(-min(4096, size), os.SEEK_END)
+                lines = f.readlines()
+            data = json.loads(lines[-1].decode("utf-8")) 
+        except Exception as e:
+            return Response(self._zero_stats(), status=200)
 
         return Response({
             "timestamp": data["ts"],
