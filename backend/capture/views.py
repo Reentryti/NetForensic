@@ -231,7 +231,7 @@ class LiveStatsAPIView(APIView):
 
         try: 
 
-            with open(STATS_PATH, "rb") as f:
+            with open(stats_path, "rb") as f:
                 f.seek(0, os.SEEK_END)
                 size = f.tell()
                 f.seek(-min(4096, size), os.SEEK_END)
@@ -249,6 +249,16 @@ class LiveStatsAPIView(APIView):
             "active_conns":  data["mem"]["conn_conn_vals"],
         })
 
+    @staticmethod
+    def _zero_stats():
+        return{
+            "timestamp": None,
+            "packet_count": 0,
+            "bytes": 0,
+            "dropped": 0,
+            "throughput_mbps": 0,
+            "active_conns": 0,
+        }
 
 ## AI Prediction functions
 # Initialisation globale
