@@ -35,6 +35,10 @@ def analyze_conn_log(log_path):
                 
                 id_orig_p = row.get('id_orig_p', '0')
                 id_resp_p = row.get('id_resp_p', '0')
+
+                #row.get('id_orig_h')
+                #row.get('id_resp_h')
+
                 
                 try:
                     src_port = int(id_orig_p) if id_orig_p and id_orig_p != '-' else 0
@@ -49,6 +53,10 @@ def analyze_conn_log(log_path):
                 proto = (row.get('proto', 'tcp') or 'tcp').lower()
                 state = row.get('conn_state', 'CON') or 'CON'
                 
+                row.get('id_orig_h')
+                row.get('id_resp_h')
+
+
                 def safe_float(value, default=0.0):
                     try:
                         return float(value) if value and value != '-' and value != '(empty)' else default
@@ -77,6 +85,8 @@ def analyze_conn_log(log_path):
                     'timestamp': row.get('ts'),
                     'src_port': src_port,
                     'dst_port': dst_port,
+                    'src_ip': row.get('id_orig_h'),
+                    'dst_ip': row.get('id_resp_h'),
                     'proto': proto,
                     'is_attack': result['is_attack'],
                     'confidence': result['confidence']

@@ -342,33 +342,23 @@ class GenerateReportAPIView(APIView):
 
         # Prompt 
         prompt = (
-            "Tu es un analyste senior en cybersécurité, spécialisé dans la détection d'intrusions et la réponse aux incidents. "
-            "Tu dois rédiger un rapport clair, structuré et compréhensible à partir de logs réseau, destiné à plusieurs publics :\n"
-            "- Les forces de sécurité (ex : police numérique, gendarmerie)\n"
-            "- Les CERT (Computer Emergency Response Teams)\n"
-            "- Les analystes SOC/CERT\n"
-            "- Et des décideurs non techniques en cellule de crise\n\n"
-            
-            "Les logs réseau sont fournis dans le format suivant :\n"
-            "<timestamp> | <protocole réseau> | <port source> -> <port destination> | attaque: <oui/non> | confiance: <valeur entre 0 et 1>\n\n"
-            
-            "Voici les données à analyser :\n"
+            "Tu es analyste cybersécurité senior. À partir des logs réseau ci-dessous "
+            "(<timestamp> | <protocole> | <src_port> -> <dst_port> | attaque:<oui/non> | confiance:<0-1>), "
+            "rédige un **rapport clair et structuré** comprenant :\n"
+            "1. **Résumé exécutif** : niveau global de menace, nombre d’incidents, types d’attaque présumés.\n"
+            "2. **Incidents détectés** : tableau horodatage / protocole / ports / attaque / confiance.\n"
+            "3. **Gravité** : faible, moyen, élevé ou critique + justification.\n"
+            "4. **Actions immédiates** : mesures techniques à appliquer sans délai.\n"
+            "5. **Remédiation court terme** : procédures de récupération ou contournement.\n"
+            "6. **Éléments probants** : traces exploitables juridiquement (horodatage, IP, répétitions).\n"
+            "Ton professionnel, concis ; explique brièvement tout jargon technique.\n\n"
+            "Logs à analyser :\n"
         )
         for p in predictions:
-            prompt += f"- {p.timestamp} | {p.proto} | {p.src_port} -> {p.dst_port} | attaque: {p.is_attack} | confiance: {p.confidence:.2f}\n"
-
-        prompt += (
-            "\nÀ partir de ces données, rédige un **rapport professionnel clair et exploitable**, qui contienne les sections suivantes :\n"
-            "1. **Résumé exécutif** : vue d'ensemble accessible à des non-techniciens, précisant le niveau global de menace, le nombre d'incidents détectés, les types d'attaques présumées (ex : scans, exfiltrations, accès non autorisé).\n"
-            "2. **Liste des incidents détectés ou suspects** : tableau ou liste structurée avec les détails clés (horodatage, protocole, ports, indicateur d'attaque, niveau de confiance).\n"
-            "3. **Évaluation de la gravité** : catégoriser chaque incident (faible / moyen / élevé / critique) avec justification.\n"
-            "4. **Recommandations techniques immédiates** : actions concrètes à mettre en œuvre (ex : blocage IP, filtrage, mise en quarantaine, renforcement des journaux, capture des paquets).\n"
-            "5. **Mesures de remédiation** à court terme : procédures de contournement ou de récupération.\n"
-            "6. **Éléments exploitables juridiquement** : preuves ou traces qui peuvent être utilisées dans le cadre d'une enquête (horodatage précis, adresses IP, nombre de répétitions, corrélations).\n\n"
-            "Utilise un ton professionnel, concis et adapté à une communication en situation d'incident. Évite le jargon technique ou explique-le brièvement."
-        )
-
-
+            prompt += (
+                f"- {p.timestamp} | {p.proto} | {p.src_ip}:{p.src_port} → {p.dst_ip}:{p.dst_port} "
+                f"| attaque:{p.is_attack} | confiance:{p.confidence:.2f}\n"
+            )
         # Mistral API 
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -392,13 +382,13 @@ class GenerateReportAPIView(APIView):
         result = response.json()
         report = result['choices'][0]['message']['content']
 
-        html_string = render_to_string('reports/generated_report.html',{
+        html_string = render_to_string('generated_report.html',{
             'report': report,
             'date': timezone.now().date()
         })
 
         pdf_file = HTML(string=html_string).write_pdf()
 
-        response = HResponse(pdf_file, content_type='application/pdf')
+        response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = 'inline; filename="rapportSecurite.pdf"'
         return response
