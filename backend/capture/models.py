@@ -57,6 +57,10 @@ class ZeekLog(models.Model):
 class Prediction(models.Model):
     session = models.ForeignKey(CaptureSession, on_delete=models.CASCADE, null= True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    src_ip = models.GenericIPAddressField(null=True, blank=True) #newly added
+    dst_ip = models.GenericIPAddressField(null=True, blank=True) #newly added
+    
     src_port = models.PositiveIntegerField()
     dst_port = models.PositiveIntegerField()
     proto = models.CharField(max_length=10)
