@@ -37,8 +37,8 @@
                     <label for="otp_code" class="form-label visually-hidden">Code d'authentification</label>
                     <input type="text" 
                            class="form-control form-control-lg text-center" 
-                           id="otp_code" 
-                           name="otp_code" 
+                           id="code" 
+                           name="code" 
                            placeholder="000000" 
                            maxlength="6" 
                            pattern="[0-9]{6}" 
@@ -74,7 +74,7 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const otpInput = document.getElementById('otp_code');
+    const otpInput = document.getElementById('code');
     const form = document.getElementById('otpForm');
     const verifyBtn = document.getElementById('verifyBtn');
 
@@ -93,15 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    otpInput.addEventListener('input', function(e) {
-        if (e.target.value.length === 6) {
-            setTimeout(() => {
-                if (e.target.value.length === 6) {
-                    form.submit();
-                }
-            }, 500);
-        }
-    });
 
     form.addEventListener('submit', function(e) {
         verifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Vérification...';

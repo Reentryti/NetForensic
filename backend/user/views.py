@@ -103,7 +103,7 @@ class TwoFactorVerifyView(View):
             user_id = request.session.get('auth_user_id')
             try:
                 user = User.objects.get(pk=user_id)
-                device = TOTPDevice.objects.get(user=user)
+                device = TOTPDevice.objects.get(user=user, confirmed=True)
             
                 if device.verify_token(form.cleaned_data['code']):
                     del request.session['auth_user_id']
@@ -257,7 +257,7 @@ class PasswordResetConfirmView(View):
         
         return redirect('password_reset')
 
-
+# Deconnexion View
 class LogoutView(View):
     def get(self, request):
         logout(request)

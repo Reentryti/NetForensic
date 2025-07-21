@@ -14,7 +14,8 @@ export default function Header() {
     <nav className="bg-blue-700 text-white shadow">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <h1 className="text-xl font-bold tracking-wide">NetForensic</h1>
-        <div className="flex space-x-4">
+
+        <div className="flex items-center space-x-4">
           {navItems.map(item => (
             <Link
               key={item.name}
@@ -28,6 +29,14 @@ export default function Header() {
               {item.name}
             </Link>
           ))}
+
+          {/* Logout Button */}
+          {location.pathname === '/' && (
+            <Link to="/logout"
+              className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white font-semibold">
+              Déconnexion
+            </Link>
+          )}
         </div>
       </div>
     </nav>
