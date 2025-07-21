@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import axios from 'axios';
 
 export default function Header() {
   const location = useLocation();
@@ -9,6 +10,24 @@ export default function Header() {
     { name: 'Analyse', path: '/analysis' },
     { name: 'Rapport', path: '/report' },
   ];
+
+   const handleLogout = async () => {
+    try {
+      const response = await axios.post('http://localhost:8000/accounts/logout', {}, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.status === 200) {
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
+
 
   return (
     <nav className="bg-blue-700 text-white shadow">
@@ -32,10 +51,12 @@ export default function Header() {
 
           {/* Logout Button */}
           {location.pathname === '/' && (
-            <Link to="/logout"
-              className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white font-semibold">
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white font-semibold"
+            >
               Déconnexion
-            </Link>
+            </button>
           )}
         </div>
       </div>

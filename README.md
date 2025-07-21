@@ -103,3 +103,10 @@ npm install
 ``` bash
 npm run dev
 ```
+
+---
+
+## Module IA
+
+### Datasets d'entrainements
+https://drive.google.com/drive/folders/1UYHGcQdR-ITrXfGDULZoTB19a1H7CKnx?usp=drive_link
