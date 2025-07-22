@@ -27,7 +27,7 @@ from weasyprint import HTML
 active_controllers = {}
 
 # Stats capture file path
-STATS_PATH = "stats.log"
+#STATS_PATH = "stats.log"
 
 # Capture Function
 ## Making some test by accessing the endpoint and making a request with content {"interface": "eth0", "filter": "port 80"}
@@ -116,24 +116,24 @@ class StopCaptureAPIView(APIView):
             session.save()
 
             #Automate Log analysis //but we prefer to get it manually on test with the analysecapture view
-            log_path = os.path.join(session.log_dir, "conn.log")
-            if os.path.exists(log_path):
-                analysis_result = analyze_conn_log(log_path)
+            #log_path = os.path.join(session.log_dir, "conn.log")
+            #if os.path.exists(log_path):
+                #analysis_result = analyze_conn_log(log_path)
 
                 #Save result
-                for entry in analysis_result:
-                    Prediction.objects.create(
-                        session=session,
-                        timestamp=entry['timestamp'],
-                        src_port=entry['src_port'],
-                        dst_port=entry['dst_port'],
-                        proto=entry['proto'],
-                        is_attack=entry['is_attack'],
-                        confidence=entry['confidence']
-                    )
+                #for entry in analysis_result:
+                    #Prediction.objects.create(
+                        #session=session,
+                        #timestamp=entry['timestamp'],
+                        #src_port=entry['src_port'],
+                        #dst_port=entry['dst_port'],
+                        #proto=entry['proto'],
+                        #is_attack=entry['is_attack'],
+                        #confidence=entry['confidence']
+                    #)
 
-            else:
-                print(f"[WARN] Fichier {log_path} introuvable.")
+            #else:
+                #print(f"[WARN] Fichier {log_path} introuvable.")
 
             del active_controllers[session_id]
 
@@ -220,33 +220,48 @@ class LogStreamView(View):
 ## A must be nice
 class LiveStatsAPIView(APIView):
     def get(self, request):
-        #Select the current running stats file 
+        # Select the current running stats file 
         session = CaptureSession.objects.filter(status='running').first()
         if not session :
             return Response(self._zero_stats(), status=200)
+        
         stats_path = os.path.join(session.log_dir, "stats.log")
-
+        
         if not os.path.exists(stats_path):
             return Response(self._zero_stats(), status=200)
 
         try: 
 
-            with open(stats_path, "rb") as f:
-                f.seek(0, os.SEEK_END)
-                size = f.tell()
-                f.seek(-min(4096, size), os.SEEK_END)
-                lines = f.readlines()
-            data = json.loads(lines[-1].decode("utf-8")) 
+            with open(stats_path, "r") as f:
+                lines = [line.strip() for line in f if not line.startswith("#")]
+
+            if not lines:
+                return Response(self._zero_stats(), status=200)
+
+            last_line = lines[-1].split("\t")
+
+            stats = {
+                "ts": float(last_line[0]),
+                "peer": last_line[1],
+                "mem": int(last_line[2]),
+                "packet_count": int(last_line[3]),
+                "bytes": int(last_line[4]),
+                "dropped": int(last_line[5]),
+                "active_conns": int(last_line[11])
+            }
+
+            throughput_mbps = round(stats["bytes"] * 8 / 1_000_000, 2)
+
         except Exception as e:
             return Response(self._zero_stats(), status=200)
 
         return Response({
-            "timestamp": data["ts"],
-            "packet_count": data["capture_stats"]["packets"],
-            "bytes":        data["capture_stats"]["bytes_recv"],
-            "dropped":      data["capture_stats"]["dropped"],
-            "throughput_mbps": round(data["capture_stats"]["bytes_recv"] * 8 / 1_000_000, 2),
-            "active_conns":  data["mem"]["conn_conn_vals"],
+            "timestamp": stats["ts"],
+            "packet_count": stats["packet_count"],
+            "bytes": stats["bytes"],
+            "dropped": stats["dropped"],
+            "throughput_mbps": throughput_mbps,
+            "active_conns": stats["active_conns"],
         })
 
     @staticmethod
