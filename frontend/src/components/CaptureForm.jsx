@@ -15,7 +15,7 @@ export default function CaptureForm({interfaces, activeSession, onSessionUpdate}
         if(activeSession && !sessionId){
             setSessionId(activeSession.id);
             setCapturing(true);
-        } else{
+        } else if (!activeSession){
             setSessionId(null);
             setCapturing(false);
         }
@@ -40,10 +40,12 @@ export default function CaptureForm({interfaces, activeSession, onSessionUpdate}
         }
         try{
             const response = await axios.post('/api/capture/', form);
-            setSessionId(response.data.session_id);
+            setSessionId(response.data.session_id || response.data.id);
             setCapturing(true);
             setMsg('Capture demarree');
-        }catch{
+            if (onSessionUpdate) onSessionUpdate();
+        }catch(error){
+            console.log("Erreur de demarrage", error);
             setMsg('Erreur lors du demarrage de la capture');
         }finally{
             setLoading(false);
@@ -52,19 +54,24 @@ export default function CaptureForm({interfaces, activeSession, onSessionUpdate}
 
     //Stop capture function
     const stopCapture = async () => {
-        console.log("essaie d'arreter la session:", sessionId)
-        if(!sessionId){
+        console.log("essaie d'arreter la session:", sessionId);
+        console.log("Active session", activeSession);
+
+        const idToStop = activeSession?.id || sessionId;
+        if(!idToStop){
             setMsg('Session inconnue');
             return;
         }
         setLoading(true);
         setMsg('');
         try{
-            await axios.post(`/api/capture/${sessionId}/stop/`);
+            await axios.post(`/api/capture/${idToStop}/stop/`);
             setCapturing(false);
             setMsg(null);
+            setMsg('Capture arrete');
             if (onSessionUpdate) onSessionUpdate();
-        }catch{
+        }catch (error){
+            console.error("Erreur arret ", error.response?.data || error);
             setMsg('Erreur lors de larret de la capture');
         }finally{
             setLoading(false);

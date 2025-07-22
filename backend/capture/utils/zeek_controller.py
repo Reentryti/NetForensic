@@ -5,7 +5,8 @@ import time
 from datetime import datetime
 from django.conf import settings
 from .log_parser import parse_ascii_log
-from capture.models import ZeekLog
+from capture.models import ZeekLog, CaptureSession
+import signal
 
 class ZeekController:
     def __init__(self, session_id=None):
@@ -61,18 +62,27 @@ class ZeekController:
         self.monitor_thread.start()
         
         return True
+    
     #Fonctoin d'execution de la commande de zeek    
     def _run_zeek(self, cmd, log_dir):
 
         try:
             self.zeek_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                cwd=log_dir
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=log_dir,
+            preexec_fn=os.setsid
             )
-            
+            try:
+                session = CaptureSession.objects.get(id=self.session_id)
+                session.pid = self.zeek_process.pid
+                session.save()
+                print(f"PID Zeek enregistré: {session.pid}")
+            except Exception as e:
+                print(f"Erreur lors de l'enregistrement du PID: {e}")
+ 
             while self.capture_active:
                 output = self.zeek_process.stdout.readline()
                 if output:
@@ -119,7 +129,6 @@ class ZeekController:
     #Fonction d'importation des logs dans la bb
     def _import_log(self, log_file):
         
-        
         log_type = os.path.basename(log_file).replace('.log', '')
         entries = parse_ascii_log(log_file)
         
@@ -151,10 +160,11 @@ class ZeekController:
         self.capture_active = False
         
         if self.zeek_process and self.zeek_process.poll() is None:
-            self.zeek_process.terminate()
             try:
+                os.killpg(os.getpgid(self.zeek_process.pid), signal.SIGTERM)
                 self.zeek_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.zeek_process.kill()
+                print(f"Capture stoppée proprement (PID: {self.zeek_process.pid})")
+            except Exception as e:
+                print(f"Erreur lors de l'arret de Zeek: {e}")
         
         print("Capture arrêtée")

@@ -23,7 +23,7 @@ class CaptureSession(models.Model):
         ('failed', 'Échec'),
         ('stopped', 'Arrêté'),
     ]
-
+    pid = models.IntegerField(null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     interface_name = models.CharField(max_length=100)    
     start_time = models.DateTimeField()
