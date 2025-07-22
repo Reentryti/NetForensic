@@ -14,7 +14,8 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 import qrcode, base64
 from io import BytesIO
 import base64
-
+from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 from .models import User
@@ -26,6 +27,12 @@ from .forms import (
     PasswordResetRequestForm,
     SetNewPasswordForm
 )
+
+
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    return JsonResponse({"message": "CSRF cookie set"})
+
 
 # Basic Signup View
 class RegistrationView(View):

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
@@ -11,23 +12,49 @@ export default function Header() {
     { name: 'Rapport', path: '/report' },
   ];
 
-   const handleLogout = async () => {
+  // Fonction pour lire le cookie CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let cookie of cookies) {
+        const trimmed = cookie.trim();
+        if (trimmed.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(trimmed.slice(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  //  Initialise le cookie CSRF au chargement du composant
+  useEffect(() => {
+    axios.get("http://localhost:8000/accounts/csrf/", {
+      withCredentials: true,
+    })
+    .then(() => console.log("CSRF cookie récupéré"))
+    .catch(err => console.error("Erreur CSRF init:", err));
+  }, []);
+
+  // Logout 
+  const handleLogout = async () => {
     try {
-      const response = await axios.post('http://localhost:8000/accounts/logout', {}, {
+      const response = await axios.post('http://localhost:8000/accounts/logout/', {}, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
+          "X-CSRFToken": getCookie("csrftoken"), 
         },
       });
-      
+
       if (response.status === 200) {
-        window.location.href = '/login';
+        window.location.href = 'http:localhost:8000/accounts/login/';
       }
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     }
   };
-
 
   return (
     <nav className="bg-blue-700 text-white shadow">

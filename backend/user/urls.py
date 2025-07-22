@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from .views import (
+from .views import ( get_csrf_token,
     RegistrationView,
     LoginView,
     LogoutView,
@@ -12,6 +12,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path("csrf/", get_csrf_token),
     # Basic Auth endpoints
     path('signup/', RegistrationView.as_view(), name='signup'),
     path('login/', LoginView.as_view(), name='login'),
